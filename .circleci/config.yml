@@ -1,17 +1,22 @@
 version: 2.1
 jobs:
  build:
+   environment:
+    - DOCKER_USER: gridtrue
+    - DOCKER_PASS: 84a9e1d1-30d5-4eac-b4a8-d6d802a82898
+    - DOCKER_TAG: api
    machine: true
    steps:
      - checkout
-     # start proprietary DB using private Docker image
      # with credentials stored in the UI
      - run: |
          echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
-         docker run -d --name db company/proprietary-db:1.2.3
+         cd api
 
      # build the application image
-     - run: docker build -t company/app:$CIRCLE_BRANCH .
+     - run: docker build -t gridtrue/people:$DOCKER_TAG .
 
      # deploy the image
-     - run: docker push company/app:$CIRCLE_BRANCH
+     - run: docker push gridtrue/people:$DOCKER_TAG
+  
+     
