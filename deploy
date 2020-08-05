@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+
+function deploy_infrastructure {
+  cd ./infrastructure || exit
+  cp ../.env .
+  cp ../terraform-credentials-95fa2872f9f9.json .
+  docker build .
+  rm -rf .env terraform-credentials-95fa2872f9f9.json
+  exit 0
+}
+
+function destroy_infrastructure {
+  cd ./infrastructure || exit
+  cp ../.env .
+  cp ../terraform-credentials-95fa2872f9f9.json .
+  docker build -f destroy.Dockerfile .
+  rm -rf .env terraform-credentials-95fa2872f9f9.json
+  exit 0
+}
+
+function deploy_application {
+  # shellcheck disable=SC2046
+  export $(xargs < .env)
+  cd ./api || exit
+  docker build -t "${APP_NAME}":"${VERSION_APP}" .
+  gcloud config set project "${PROJECT_ID}"
+  gcloud auth configure-docker
+  docker tag "${APP_NAME}":"${VERSION_APP}" "gcr.io/${PROJECT_ID}/${APP_NAME}:${VERSION_APP}"
+  docker push "gcr.io/${PROJECT_ID}/${APP_NAME}:${VERSION_APP}"
+  gcloud auth activate-service-account "${ACCOUNT}" --key-file=terraform-credentials-95fa2872f9f9.json
+  gcloud container clusters get-credentials "${CLUSTER_NAME}" --region "${REGION}"
+  kubectl create deployment "${DEPLOYMENT}" --image=gcr.io/"${PROJECT_ID}"/"${APP_NAME}":"${VERSION_APP}"
+  kubectl get pods
+  kubectl expose deployment "${DEPLOYMENT}" --type=LoadBalancer --port 80 --target-port "${APP_PORT}"
+  kubectl get services
+  gcloud compute addresses create web-static-ip --global
+  kubectl apply -f ingress.yml
+  kubectl get ingress basic-ingress
+  exit 0
+}
+
+
+while test $# -gt 0; do
+  case "$1" in
+    -h|--help)
+      echo "deploy - deploy infrastructure or application"
+      echo " "
+      echo "deploy [options] application [arguments]"
+      echo " "
+      echo "options:"
+      echo "-h, --help                show brief help"
+      echo "-a, --action=ACTION       specify an action to use eg: --action=application"
+      exit 0
+      ;;
+    -a)
+      shift
+      if test $# -gt 0; then
+        if [ "$1" == "application" ]; then
+          deploy_application
+        fi
+        if [ "$1" == "infrastructure" ]; then
+          deploy_infrastructure
+        fi
+        if [ "$1" == "destroy-infrastructure" ]; then
+          destroy_infrastructure
+        fi
+      else
+        echo "no process specified"
+        exit 1
+      fi
+      shift
+      ;;
+    --action*)
+      if [ "$1" == "--action=application" ]; then
+          deploy_application
+      fi
+      if [ "$1" == "--action=infrastructure" ]; then
+          deploy_infrastructure
+      fi
+      if [ "$1" == "--action=destroy-infrastructure" ]; then
+          destroy_infrastructure
+      fi
+      shift
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
