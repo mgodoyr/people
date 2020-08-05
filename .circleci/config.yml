@@ -3,6 +3,6 @@ jobs:
   build:
     machine: true
     steps:
-      - run: chmod +x deploy
+      - run: chmod +x ./deploy
       - run: ./deploy -a infrastructure
       - run: ./deploy -a application
