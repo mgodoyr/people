@@ -71,7 +71,7 @@ this cluster application is published under Cloudflare and Apigee Gateway (Edge)
 
 API is manage by Apigee, you must enter to this temporal endpoint
 
-`https://weare-eval-prod.apigee.net`
+https://weare-eval-prod.apigee.net
 
 to get an access token, use this one Curl request snippet
 
@@ -101,6 +101,12 @@ https://23people.docs.apiary.io
 
 
 ---
+
+Video explanation
+
+https://youtu.be/UfDCRdXTrWo
+
+
 
 
 
